@@ -1,0 +1,18 @@
+{% extends 'accounts/base.html' %}
+{% load crispy_forms_tags  %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-sm-12">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <h1>Do you want to delete Customer {{customer.name}}?</h1>
+                
+                <input type="submit" value="YES">
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
