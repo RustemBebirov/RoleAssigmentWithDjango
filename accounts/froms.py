@@ -8,11 +8,15 @@ User = get_user_model()
 from django.contrib.auth.forms import UserCreationForm
 
 
-class CreateUserForm(UserCreationForm):
+class UserForm(UserCreationForm):
+
+    
+    
 	class Meta:
 		model = User
-		fields = ['username', 'email', 'password1', 'password2']
+		fields = ('username', 'email','create','read','update','read','delete' ,'password1', 'password2')
 
+        
 
 class CustomerForm(ModelForm):
     class Meta:
