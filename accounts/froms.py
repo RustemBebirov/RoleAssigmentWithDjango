@@ -16,7 +16,7 @@ class UserForm(UserCreationForm):
 		model = User
 		fields = ('username', 'email','create','read','update','read','delete' ,'password1', 'password2')
 
-        
+      
 
 class CustomerForm(ModelForm):
     class Meta:
@@ -33,4 +33,11 @@ class Login(forms.Form):
     password = forms.CharField(max_length=50,widget=forms.PasswordInput(attrs={
         'class':'form-control',
         'placeholder': 'Password'
+    }))
+
+
+class ChangeEmail(forms.Form):
+    email = forms.CharField(max_length=50,widget=forms.EmailInput(attrs={
+        'class' : 'form-control',
+        'placeholder' : 'Email'
     }))

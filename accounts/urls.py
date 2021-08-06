@@ -1,5 +1,7 @@
 from django.urls import path
+from django.urls import path, re_path, reverse_lazy
 from . import views
+from django.contrib.auth import views as auth_views
 
 app_name = 'accounts'
 
@@ -20,8 +22,8 @@ urlpatterns = [
     
     path('editor/add/', views.createEditor, name='editor-add'),
     path('update_editor/<str:pk>/', views.updateEditor, name="editor-update"),
+    path('update_admin/<str:pk>/', views.updateAdmin, name="admin-update"),
     path('delete_editor/<str:pk>/', views.deleteEditor, name="editor-delete"),
-    # path('editor/add/', views.EditorCreateView.as_view(), name='editor-add'),
-    # path('editor/<int:pk>/', views.EditorUpdateView.as_view(), name='editor-update'),
-    # path('editor/<int:pk>/delete/', views.EditorDeleteView.as_view(), name='editor-delete')
+    re_path(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,33})/$', views.activate, name='activate'),
+    
 ]

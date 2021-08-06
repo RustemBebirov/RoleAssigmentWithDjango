@@ -14,11 +14,8 @@
   <body>
     {% include 'accounts/includes/navbar.html' %}
     {% block content %}
-    {% if messages %}
-        {% for message in messages %}
-        <div {% if message.tags %} class="alert alert-{{message.tags}} " {% endif %} style="text-align: center;">{{message}}</div>
-        {% endfor %}
-        {% endif %}
+    
+        
     {% endblock %}
 
     

@@ -1,17 +1,21 @@
 from django import http
+from django.forms.forms import Form
+from django.http.response import HttpResponse
 from accounts.models import  Customer
 from django.shortcuts import redirect, render
-from .froms import CustomerForm, Login, UserForm
+from .froms import ChangeEmail, CustomerForm, Login, UserForm
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
 from .decorators import allowed_users, unauthenticated_user,admin_only
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy 
-from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.contrib.auth import get_user_model
 User = get_user_model()
-from django.http import HttpResponse, request
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.utils.encoding import force_text 
+from accounts.tasks import send_confirmation_mail 
+from accounts.tools.tokens import account_activation_token 
+from django.utils.http import urlsafe_base64_decode
+from django.contrib import messages
 # Create your views here.
 
 @unauthenticated_user
@@ -44,6 +48,7 @@ def logout(request):
 def home(request):
     return render(request, 'accounts/dashboard.html')
 
+
 @login_required(login_url='accounts:login')
 def customer(request):
     if request.user.read == True:
@@ -54,7 +59,9 @@ def customer(request):
 
         }
 
-    return render(request,'accounts/customer.html',context)
+        return render(request,'accounts/customer.html',context)
+    else:
+        return HttpResponse("<p>You are note permissions</p>")
 
 
 @login_required(login_url='login')
@@ -69,6 +76,8 @@ def createCustomer(request):
 			    return redirect('/customer')
 	    context = {'form':form}
 	    return render(request, 'accounts/create.html', context)
+    else:
+        return HttpResponse("<p>You are note permissions</p>")
 
 @login_required(login_url='login')  
 def updateCustomer(request, pk):
@@ -84,6 +93,9 @@ def updateCustomer(request, pk):
 
         context = {'form':form}
         return render(request, 'accounts/create.html', context)
+    else:
+        return HttpResponse("<p>You are note permissions</p>")
+
 
 @login_required(login_url='login')
 def deleteCustomer(request, pk):
@@ -93,51 +105,13 @@ def deleteCustomer(request, pk):
             customer.delete()
             return redirect('/customer')
         return render(request, 'accounts/delete.html')
+    else:
+        return HttpResponse("<p>You are note permissions</p>")
 
 
-
-# class CustomerCreateView(LoginRequiredMixin,CreateView):
-
-#     model = Customer
-#     form_class = CustomerForm
-#     template_name = 'accounts/create.html'
-#     success_url = '/customer'
-
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context["is_super"] = self.request.user.is_superuser
-#         return context
-
-
-# class CustomerUpdateView(UpdateView):
-#     model = Customer
-#     form_class = CustomerForm
-#     template_name = 'accounts/create.html'
-#     success_url = '/customer'
-
-    
-#         # def form_valid(self, form):
-#         #     obj = form.save(commit=False)
-#         #     obj.save()        
-#         #     return http.HttpResponseRedirect(self.get_success_url())
-
-
-# class CustomerDeleteView(DeleteView):
-#     model = Customer
-#     template_name = 'accounts/delete.html'
-#     success_url = '/customer'
-
-#     def form_valid(self, form):
-
-#         if request.user.delete == True:
-#             obj = form.save(commit=False)
-#             obj.save()        
-#             return http.HttpResponseRedirect(self.get_success_url())
-
-
+# editor
 @login_required(login_url='accounts:login')
 def editor(request):
-
     editors= User.objects.filter(is_superuser = False).all
     context={
         'editors':editors
@@ -146,7 +120,6 @@ def editor(request):
 
 
 @login_required(login_url='login')
-# @allowed_users(allowed_roles=['admin'])
 def createEditor(request):
     form=UserForm()
     if request.user.is_superuser == True:
@@ -155,7 +128,7 @@ def createEditor(request):
 		    form = UserForm(request.POST)
 		    if form.is_valid():
 			    form.save()
-			    return redirect('/edtior')
+			    return redirect('/editor')
 	    context = {'form':form}
 	    return render(request, 'accounts/create.html', context)
 
@@ -174,6 +147,7 @@ def updateEditor(request, pk):
         context = {'form':form}
         return render(request, 'accounts/create.html', context)
 
+
 @login_required(login_url='login')
 def deleteEditor(request, pk):
     if request.user.is_superuser == True:
@@ -183,27 +157,44 @@ def deleteEditor(request, pk):
             return redirect('/editor')
         return render(request, 'accounts/delete.html')
 
-# class EditorCreateView(CreateView):
-#     model = User
-#     form_class = UserForm
-#     template_name = 'accounts/create.html'
-#     success_url = '/editor'
 
-#     # def form_valid(self, form):
-#     #     obj = form.save(commit=False)
-#     #     obj.teacher = self.request.user
-#     #     obj.save()        
-#     #     return http.HttpResponseRedirect(self.get_success_url())
+def updateAdmin(request,pk):
+
+    user = User.objects.get(id=pk)
+    form = UserForm(instance = user)
+    if request.method == 'POST':
+        form = UserForm(request.POST, instance = user)
+        if form.is_valid():
+            email  = request.POST.get('email')
+            site_address = request.is_secure() and "https://" or "http://" + request.META['HTTP_HOST'] 
+            send_confirmation_mail(user_id=user.id, site_address=site_address) 
+            messages.success(request, 'Siz ugurla deyisiklik elediniz')        
+            return redirect('/')
+
+    context = {
+        'form':form,
+    }
+    return render(request, 'accounts/create.html', context)
 
 
-# class EditorUpdateView(UpdateView):
-#     model = User
-#     form_class = UserForm
-#     template_name = 'accounts/create.html'
-#     success_url = '/editor'
 
+def activate(request, uidb64, token):
+    try:
+        uid = force_text(urlsafe_base64_decode(uidb64)) 
+        user = User.objects.get(pk=uid) 
+    except:
+        (TypeError, ValueError, OverflowError, User.DoesNotExist) 
+        user = None
 
-# class EditorDeleteView(DeleteView):
-#     model = User
-#     template_name = 'accounts/delete.html'
-#     success_url = '/editor'
+    if user is not None and account_activation_token.check_token(user, token):
+        user.save()
+        messages.success(request, 'Email is changed')
+        return redirect(reverse_lazy('accounts:home'))
+
+    elif user:
+        messages.error(request, 'Email is not activated. May be is already activated')
+        return redirect(reverse_lazy('accounts:home'))
+
+    else:
+        messages.error(request, 'Email is not activated')
+        return redirect(reverse_lazy('accounts:home'))
