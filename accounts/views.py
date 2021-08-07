@@ -158,17 +158,15 @@ def deleteEditor(request, pk):
         return render(request, 'accounts/delete.html')
 
 
+@login_required(login_url='login')
 def updateAdmin(request,pk):
 
     user = User.objects.get(id=pk)
-    form = UserForm(instance = user)
+    form = UserForm(instance =user)
     if request.method == 'POST':
-        form = UserForm(request.POST, instance = user)
+        form = UserForm(request.POST,instance = user)
         if form.is_valid():
-            email  = request.POST.get('email')
-            site_address = request.is_secure() and "https://" or "http://" + request.META['HTTP_HOST'] 
-            send_confirmation_mail(user_id=user.id, site_address=site_address) 
-            messages.success(request, 'Siz ugurla deyisiklik elediniz')        
+            form.save()
             return redirect('/')
 
     context = {
@@ -177,24 +175,3 @@ def updateAdmin(request,pk):
     return render(request, 'accounts/create.html', context)
 
 
-
-def activate(request, uidb64, token):
-    try:
-        uid = force_text(urlsafe_base64_decode(uidb64)) 
-        user = User.objects.get(pk=uid) 
-    except:
-        (TypeError, ValueError, OverflowError, User.DoesNotExist) 
-        user = None
-
-    if user is not None and account_activation_token.check_token(user, token):
-        user.save()
-        messages.success(request, 'Email is changed')
-        return redirect(reverse_lazy('accounts:home'))
-
-    elif user:
-        messages.error(request, 'Email is not activated. May be is already activated')
-        return redirect(reverse_lazy('accounts:home'))
-
-    else:
-        messages.error(request, 'Email is not activated')
-        return redirect(reverse_lazy('accounts:home'))

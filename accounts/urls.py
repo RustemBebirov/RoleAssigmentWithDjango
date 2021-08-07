@@ -24,6 +24,5 @@ urlpatterns = [
     path('update_editor/<str:pk>/', views.updateEditor, name="editor-update"),
     path('update_admin/<str:pk>/', views.updateAdmin, name="admin-update"),
     path('delete_editor/<str:pk>/', views.deleteEditor, name="editor-delete"),
-    re_path(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,33})/$', views.activate, name='activate'),
     
 ]
