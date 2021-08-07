@@ -9,14 +9,14 @@ class User(AbstractUser):
     email = models.EmailField('Email',unique=True)
     image = models.ImageField("Image 40x40 ",upload_to='profile_images',null=True)
     username = models.CharField('Username', max_length=50,unique=True)
-    create = models.BooleanField(default=False)
-    read = models.BooleanField(default=False)
-    update = models.BooleanField(default=False)
-    delete = models.BooleanField(default=False)
+    create = models.BooleanField(default=True)
+    read = models.BooleanField(default=True)
+    update = models.BooleanField(default=True)
+    delete = models.BooleanField(default=True)
 
 
     USERNAME_FIELD= 'username'
-    REQUIRED_FIELDS = ['email','create','read','update','delete']
+    REQUIRED_FIELDS = ['email']
 
     def __str__(self) -> str:
         return self.username
